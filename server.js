@@ -1,25 +1,35 @@
 import express from "express";
-import Stripe from "stripe";
 import cors from "cors";
+import Stripe from "stripe";
 
 const app = express();
+const stripe = new Stripe("sk_test_YOUR_SECRET_KEY"); // replace later
+
 app.use(cors());
 app.use(express.json());
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-app.post("/create-checkout", async (req, res) => {
-  const { items } = req.body;
-
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
-    line_items: items,
-    mode: "payment",
-    success_url: "https://YOUR_STORE_URL?success=true",
-    cancel_url: "https://YOUR_STORE_URL?cancel=true"
-  });
-
-  res.json({ url: session.url });
+app.get("/", (req, res) => {
+  res.send("Shopify Clone Backend is running 🚀");
 });
 
-app.listen(3000, () => console.log("Server running"));
+app.post("/create-payment-intent", async (req, res) => {
+  try {
+    const { amount } = req.body;
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: "usd",
+    });
+
+    res.json({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
